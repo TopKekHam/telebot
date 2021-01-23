@@ -3,8 +3,8 @@ from telebot import TelegramBot
 from typing import Any
 import telebot
 
-token : str = '1590960430:AAG5aJEJWwhos7tu9GvhTCxoTy3edaDh2FQ'
-host : str = 'https://751b3a806a1c.ngrok.io'
+token : str = '<bot-token>'
+host : str = 'https://yourhost.com'
 telegram_webhook_endpoing :str = '/telegram_webhook'
 
 app : FastAPI = FastAPI()
