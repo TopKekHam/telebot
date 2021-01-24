@@ -73,7 +73,7 @@ def option_inline_keyboard(buttons : List[List[Any]]) -> Dict[str, Any]:
     return {'reply_markup': json.dumps({'inline_keyboard': buttons})}
 
 
-# view options ib telegram bot api
+# https://core.telegram.org/bots/api#sendmessage
 def send_message(bot: TelegramBot, chat_id: str, text: str, options: Optional[Dict[str, Any]] = None) -> Optional[Any]:
     data = {'chat_id': chat_id, 'text': text}
 
@@ -91,7 +91,8 @@ def send_message(bot: TelegramBot, chat_id: str, text: str, options: Optional[Di
 # TODO: for now we can only use url of the photo to send one
 # we need to implement multipart/form-data as a photo
 #-------------------------------------------------------------
-# photo: url of the image or InputFile(telegram class, use message_photo to create one)
+# The photo must be at most 10 MB in size. 
+# photo: url of the image/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
 # check options: https://core.telegram.org/bots/api#sendphoto
 def send_photo(bot : TelegramBot, chat_id : str, photo : str, options: Optional[Dict[str, Any]] = None):
 
@@ -101,4 +102,119 @@ def send_photo(bot : TelegramBot, chat_id : str, photo : str, options: Optional[
         data.update(options)
 
     res = post(bot.token, 'sendPhoto', data)
+    return res
+
+
+# TODO: for now we can only use url or file_id of the audio to send one
+# we need to implement multipart/form-data as a audio
+#-------------------------------------------------------------
+# Bots can send audio of .MP3 or .M4A format and up to 50 MB in size
+# audio: url of the audio/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
+# check options: https://core.telegram.org/bots/api#sendaudio
+def send_audio(bot: TelegramBot, chat_id : str, audio : str, options: Optional[Dict[str, Any]] = None):
+    
+    data = {'chat_id' : chat_id, 'audio' : audio}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendAudio', data)
+    return res
+
+
+# TODO: for now we can only use url or file_id of the document to send one
+# we need to implement multipart/form-data as a document
+#-------------------------------------------------------------
+# Bots can send files of any type of up to 50 MB in size
+# audio: url of the audio/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
+# check options: https://core.telegram.org/bots/api#senddocuments
+def send_document(bot: TelegramBot, chat_id : str, document : str, options: Optional[Dict[str, Any]] = None):
+    
+    data = {'chat_id' : chat_id, 'document' : document}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendDocument', data)
+    return res
+
+
+# TODO: for now we can only use url or file_id of the video to send one
+# we need to implement multipart/form-data as a document
+#-------------------------------------------------------------
+# Telegram clients support mp4 videos
+# Bots can send video files of up to 50 MB in size
+# check options: https://core.telegram.org/bots/api#sendvideo
+def send_video(bot: TelegramBot, chat_id : str, video : str, options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'video' : video}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendVideo', data)
+    return res
+
+
+# check options: https://core.telegram.org/bots/api#sendlocation
+def send_location(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'latitude' : latitude, 'longitude' : longitude}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendLocation', data)
+    return res
+
+# check options: https://core.telegram.org/bots/api#sendvenue
+def send_venue(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, title : str, address : str, options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'latitude' : latitude, 'longitude' : longitude, 'title' : title, 'address' : address}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendVenue', data)
+    return res
+
+# check options: https://core.telegram.org/bots/api#sendcontact
+def send_contact(bot: TelegramBot, chat_id : str, phone_number: str, first_name : str , options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'phone_number' : phone_number, 'first_name' : first_name}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendContact', data)
+    return res
+
+
+# check options: https://core.telegram.org/bots/api#sendpoll
+# options: list of answer options, 2-10 strings 1-100 characters each
+def send_poll(bot: TelegramBot, chat_id : str, question : str , poll_options : List[str], options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'question' : question, 'options' : json.dumps(poll_options)}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendPoll', data)
+    return res
+
+
+# Currently, must be one of “🎲”, “🎯”, “🏀”, “⚽”, or “🎰”. 
+# values 1-6 for “🎲” and “🎯”, 
+# values 1-5 for “🏀” and “⚽”,
+# values 1-64 for “🎰”
+# Defaults to “🎲”
+# options: https://core.telegram.org/bots/api#senddice
+def send_dice(bot: TelegramBot, chat_id : str, emoji : '🎲', options: Optional[Dict[str, Any]] = None):
+
+    data = {'chat_id' : chat_id, 'emoji' : emoji}   
+
+    if options:
+        data.update(options)
+
+    res = post(bot.token, 'sendDice', data)
     return res
