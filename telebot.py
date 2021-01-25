@@ -1,8 +1,12 @@
 import requests
 import json
-from typing import Optional, List, Any, Dict, Union
+from io import BufferedReader
+from typing import Optional, List, Any, Dict, Union, IO
+
 
 # Types
+
+
 class TelegramBot:
     token: str
 
@@ -21,6 +25,7 @@ def telegram_endpoint(token: str, method_name: str) -> str:
 
 def get(token: str, method: str) -> Optional[Any]:
     res = requests.get(telegram_endpoint(token, method)).json()
+    print(res)
 
     if res['ok']:
         return res['result']
@@ -30,26 +35,63 @@ def get(token: str, method: str) -> Optional[Any]:
         return None
 
 
-def post(token: str, method: str, data: Any) -> Optional[Any]:
-    res = requests.post(telegram_endpoint(token, method), data=data).json()
+def post(token: str, method: str, data: Any, files : Dict[str, Any] = None) -> Optional[Any]:
+
+    res = requests.post(telegram_endpoint(token, method), data=data, files = files).json()
+    print(res)
+
+    if res['ok']:
+        return res['result']
+
+    else:
+        print(res)
+        return None
+
+def post_ex(token: str, method: str, optinals: Optional[Dict[str, Any]], **kwargs) -> Optional[Any]:
+
+    data : Dict[str, Any] = {}
+    files : Dict[str, IO] = {}
     
+    if optinals:
+        for i ,(key, value) in enumerate(optinals.items()):
+            if isinstance(value, BufferedReader):
+                files[key] = value
+            else:
+                if value:
+                    data[key] = value
+    
+    for i ,(key, value) in enumerate(kwargs.items()):
+        if isinstance(value, BufferedReader):
+            files[key] = value
+        else:
+            if value:
+                data[key] = value
+
+    res = requests.post(telegram_endpoint(token, method), data=data, files = files).json()
+    #print(res)
+
     if res['ok']:
         return res['result']
 
     else:
         print(res)
         return None
+
 
 # telegram methods
 
 
 def get_me(bot : TelegramBot) -> Optional[Any]:
     res = get(bot.token, 'getMe')
+    print[res]
 
-    if res:
-        return User.parse_obj(res)
-    
-    else:buttons
+    if res['ok']:
+        return res['result']
+    else:
+        print(res)
+        return None
+
+
 # creates bot instance and opens telegram bot webhook
 # url: webhook endpoint
 # token: bot private token
@@ -66,140 +108,109 @@ def create_bot(url : str , token : str) -> Optional[TelegramBot]:
 def shutdown_webhook(bot : TelegramBot) -> None:
     res = get(bot.token, 'deleteWebhook')
 
+
 # the first list is the row of buttons
 # the second list is the buttons in the row
 # the button is InlineButtonWithCallbackData telegram class
-def option_inline_keyboard(buttons : List[List[Any]]) -> Dict[str, Any]:
+def optinal_inline_keyboard(buttons : List[List[Any]]) -> Dict[str, Any]:
     return {'reply_markup': json.dumps({'inline_keyboard': buttons})}
 
 
-# https://core.telegram.org/bots/api#sendmessage
-def send_message(bot: TelegramBot, chat_id: str, text: str, options: Optional[Dict[str, Any]] = None) -> Optional[Any]:
-    data = {'chat_id': chat_id, 'text': text}
+def optinal_disable_notification(value : bool = True) -> Dict[str, Any]:
+    return {'disable_notification' : value}
 
-    if options:
-        data.update(options)
 
-    print(data)
-    res = post(bot.token, 'sendMessage', data)
+def optinal_reply_to_message(message_id : int, allow_sending_without_reply: bool = False) -> Dict[str, Any]:
+    return {'reply_to_message_id' : message_id, 'allow_sending_without_reply' : allow_sending_without_reply }
 
+
+# works for video, audio, photo ,ducoment, voice.
+def optinal_caption(caption : str) -> Dict[str, Any]:
+    return {'caption' : caption}
+
+
+# TODO: for now we can only use url of the thumbnail to send one
+# we need to implement multipart/form-data as a thumbnail
+# the thumbmail should be in JPEG format and less than 200 kB in size
+# A thumbnail's width and height should not exceed 320
+def option_thumbnail(url : Union[str, IO]) -> Dict[str, Any]:
+    return {'thumb' : url}
+
+
+# duration: in seconds
+def options_audio(duration : int = 0, preformer : str = '', title : str = '') -> Dict[str, Any]:
+    return {'duration' : duration, 'preformer' : preformer, 'title' : title}
+
+
+# duration: in seconds
+def options_video(duration : int = 0, width : int = 0, height : int = 0):
+    return {'duration' : duration, 'width' : width, 'height' : height}
+
+
+# check optinals: https://core.telegram.org/bots/api#sendmessage
+def send_message(bot: TelegramBot, chat_id: str, text: str, optinals: Optional[Dict[str, Any]] = None) -> Optional[Any]:
+    res = post_ex(bot.token, 'sendMessage', optinals, chat_id=chat_id, text=text)
+    
     if res:
         return res
 
     return None
 
-# TODO: for now we can only use url of the photo to send one
-# we need to implement multipart/form-data as a photo
-#-------------------------------------------------------------
+
 # The photo must be at most 10 MB in size. 
 # photo: url of the image/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
-# check options: https://core.telegram.org/bots/api#sendphoto
-def send_photo(bot : TelegramBot, chat_id : str, photo : str, options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'photo' : photo}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendPhoto', data)
+# check optinals: https://core.telegram.org/bots/api#sendphoto
+def send_photo(bot : TelegramBot, chat_id : str, photo : Union[str, IO], optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendPhoto', optinals, chat_id=chat_id, photo=photo)
     return res
 
 
-# TODO: for now we can only use url or file_id of the audio to send one
-# we need to implement multipart/form-data as a audio
-#-------------------------------------------------------------
 # Bots can send audio of .MP3 or .M4A format and up to 50 MB in size
 # audio: url of the audio/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
-# check options: https://core.telegram.org/bots/api#sendaudio
-def send_audio(bot: TelegramBot, chat_id : str, audio : str, options: Optional[Dict[str, Any]] = None):
-    
-    data = {'chat_id' : chat_id, 'audio' : audio}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendAudio', data)
+# check optinals: https://core.telegram.org/bots/api#sendaudio
+def send_audio(bot: TelegramBot, chat_id : str, audio : Union[str, IO], optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendAudio', optinals, chat_id=chat_id, audio=audio)
     return res
 
 
-# TODO: for now we can only use url or file_id of the document to send one
-# we need to implement multipart/form-data as a document
-#-------------------------------------------------------------
 # Bots can send files of any type of up to 50 MB in size
 # audio: url of the audio/file_id or InputFile(https://core.telegram.org/bots/api#inputfile)
-# check options: https://core.telegram.org/bots/api#senddocuments
-def send_document(bot: TelegramBot, chat_id : str, document : str, options: Optional[Dict[str, Any]] = None):
-    
-    data = {'chat_id' : chat_id, 'document' : document}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendDocument', data)
+# check optinals: https://core.telegram.org/bots/api#senddocuments
+def send_document(bot: TelegramBot, chat_id : str, document : [str, IO], optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendDocument', optinals, chat_id=chat_id, document=document)
     return res
 
 
-# TODO: for now we can only use url or file_id of the video to send one
-# we need to implement multipart/form-data as a document
-#-------------------------------------------------------------
 # Telegram clients support mp4 videos
 # Bots can send video files of up to 50 MB in size
-# check options: https://core.telegram.org/bots/api#sendvideo
-def send_video(bot: TelegramBot, chat_id : str, video : str, options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'video' : video}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendVideo', data)
+# check optinals: https://core.telegram.org/bots/api#sendvideo
+def send_video(bot: TelegramBot, chat_id : str, video : Union[str, IO], optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendVideo', optinals, chat_id=chat_id, video=video)
     return res
 
 
-# check options: https://core.telegram.org/bots/api#sendlocation
-def send_location(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, options: Optional[Dict[str, Any]] = None):
+# check optinals: https://core.telegram.org/bots/api#sendlocation
+def send_location(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendLocation', optinals, chat_id=chat_id, latitude=latitude, longitude=longitude)
+    return res    
 
-    data = {'chat_id' : chat_id, 'latitude' : latitude, 'longitude' : longitude}   
 
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendLocation', data)
-    return res
-
-# check options: https://core.telegram.org/bots/api#sendvenue
-def send_venue(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, title : str, address : str, options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'latitude' : latitude, 'longitude' : longitude, 'title' : title, 'address' : address}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendVenue', data)
-    return res
-
-# check options: https://core.telegram.org/bots/api#sendcontact
-def send_contact(bot: TelegramBot, chat_id : str, phone_number: str, first_name : str , options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'phone_number' : phone_number, 'first_name' : first_name}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendContact', data)
+# check optinals: https://core.telegram.org/bots/api#sendvenue
+def send_venue(bot: TelegramBot, chat_id : str, latitude : float , longitude : float, title : str, address : str, optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendVenue', optinals, chat_id=chat_id, latitude=latitude, longitude=longitude, title=title, address=address)
     return res
 
 
-# check options: https://core.telegram.org/bots/api#sendpoll
+# check optinals: https://core.telegram.org/bots/api#sendcontact
+def send_contact(bot: TelegramBot, chat_id : str, phone_number: str, first_name : str , last_name : str = None, optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendContact', optinals, chat_id=chat_id, phone_number=phone_number, first_name=first_name, last_name=last_name)
+    return res
+
+
+# check optinals: https://core.telegram.org/bots/api#sendpoll
 # options: list of answer options, 2-10 strings 1-100 characters each
-def send_poll(bot: TelegramBot, chat_id : str, question : str , poll_options : List[str], options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'question' : question, 'options' : json.dumps(poll_options)}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendPoll', data)
+def send_poll(bot: TelegramBot, chat_id : str, question : str , poll_options : List[str], optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendPoll', optinals, chat_id=chat_id, question=question, options=json.dumps(poll_options))
     return res
 
 
@@ -208,13 +219,7 @@ def send_poll(bot: TelegramBot, chat_id : str, question : str , poll_options : L
 # values 1-5 for “🏀” and “⚽”,
 # values 1-64 for “🎰”
 # Defaults to “🎲”
-# options: https://core.telegram.org/bots/api#senddice
-def send_dice(bot: TelegramBot, chat_id : str, emoji : '🎲', options: Optional[Dict[str, Any]] = None):
-
-    data = {'chat_id' : chat_id, 'emoji' : emoji}   
-
-    if options:
-        data.update(options)
-
-    res = post(bot.token, 'sendDice', data)
+# optinals: https://core.telegram.org/bots/api#senddice
+def send_dice(bot: TelegramBot, chat_id : str, emoji : '🎲', optinals: Optional[Dict[str, Any]] = None):
+    res = post_ex(bot.token, 'sendDice', optinals, chat_id=chat_id, emoji=emoji)
     return res
