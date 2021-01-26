@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../')
 from fastapi import FastAPI, Body
 from telebot import TelegramBot
 from typing import Any
@@ -15,6 +17,7 @@ app : FastAPI = FastAPI()
 bot : TelegramBot = telebot.create_bot(f'{host}{telegram_webhook_endpoing}', token)
 # if you want to send a message and check out all examples make it true.
 debug_mode : bool = False
+
 
 @app.on_event("startup")
 async def startup_event():  
@@ -110,16 +113,16 @@ async def telegram_webhook(update = Body(...)):
 
     if is_message_update(update, 'audio_file'):
         # dont for get to and binary flag in open()
-        telebot.send_audio(bot, update['message']['chat']['id'], open('./files/example_audio.mp3', 'rb'))
+        telebot.send_audio(bot, update['message']['chat']['id'], open('../files/example_audio.mp3', 'rb'))
 
     if is_message_update(update, 'document_file'):
         # dont for get to and binary flag in open()
-        telebot.send_document(bot, update['message']['chat']['id'], open('./files/example_document.txt', 'rb'))
+        telebot.send_document(bot, update['message']['chat']['id'], open('../files/example_document.txt', 'rb'))
 
     if is_message_update(update, 'video_file'):
         # dont for get to and binary flag in open()
-        telebot.send_video(bot, update['message']['chat']['id'], open('./files/example_video.mp4', 'rb'))
+        telebot.send_video(bot, update['message']['chat']['id'], open('../files/example_video.mp4', 'rb'))
 
     if is_message_update(update, 'photo_file'):
         # dont for get to and binary flag in open()
-        telebot.send_photo(bot, update['message']['chat']['id'], open('./files/example_photo.jpg', 'rb'))
+        telebot.send_photo(bot, update['message']['chat']['id'], open('../files/example_photo.jpg', 'rb'))
